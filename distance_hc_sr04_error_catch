@@ -1,0 +1,62 @@
+# -*- coding:utf-8 -*-
+import RPi.GPIO as GPIO
+import time
+import sys
+import traceback
+
+TRIG = 23  # GPIO pin for TRIG
+ECHO = 5   # GPIO pin for ECHO
+
+GPIO.setmode(GPIO.BCM)
+GPIO.setwarnings(False)
+GPIO.setup(TRIG, GPIO.OUT)
+GPIO.setup(ECHO, GPIO.IN)
+GPIO.output(TRIG, GPIO.LOW)
+time.sleep(2)  # czas do inicjalizacji czujnika
+
+def dist():
+    try:
+        GPIO.output(TRIG, GPIO.HIGH)
+        time.sleep(0.000015)
+        GPIO.output(TRIG, GPIO.LOW)
+
+        timeout_start = time.time()
+        while GPIO.input(ECHO) == 0:
+            if time.time() - timeout_start > 0.02:
+                return -1
+
+        t1 = time.time()
+
+        timeout_start = time.time()
+        while GPIO.input(ECHO) == 1:
+            if time.time() - timeout_start > 0.02:
+                return -1
+
+        t2 = time.time()
+        distance = (t2 - t1) * 34000 / 2
+        return distance
+    except Exception as e:
+        print("Blad w funkcji dist():", e)
+        traceback.print_exc()
+        return -1
+
+try:
+    while True:
+        try:
+            print("HC-SR04")
+            d = dist()
+            if d == -1:
+                print("Brak odczytu")
+            else:
+                print("Distance: %.2f cm" % d)
+            time.sleep(1)
+        except Exception as loop_error:
+            print("Blad w petli glownej:", loop_error)
+            traceback.print_exc()
+            time.sleep(1)
+except KeyboardInterrupt:
+    print("\nPrzerwano przez CTRL+C)")
+finally:
+    GPIO.cleanup()
+    print("GPIO wyczyszczone – zakonczono program")
+
